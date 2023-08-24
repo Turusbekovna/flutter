@@ -254,6 +254,11 @@ abstract mixin class WidgetsBindingObserver {
   /// documentation for the [WidgetsBindingObserver] class.
   ///
   /// This method exposes notifications from [SystemChannels.lifecycle].
+  ///
+  /// See also:
+  ///
+  ///  * [AppLifecycleListener], an alternative API for responding to
+  ///    application lifecycle changes.
   void didChangeAppLifecycleState(AppLifecycleState state) { }
 
   /// Called when a request is received from the system to exit the application.
@@ -506,23 +511,6 @@ mixin WidgetsBinding on BindingBase, ServicesBinding, SchedulerBinding, GestureB
         },
       );
 
-      registerServiceExtension(
-        name: WidgetsServiceExtensions.fastReassemble.name,
-        callback: (Map<String, Object> params) async {
-          // This mirrors the implementation of the 'reassemble' callback registration
-          // in lib/src/foundation/binding.dart, but with the extra binding config used
-          // to skip some reassemble work.
-          final String? className = params['className'] as String?;
-          BindingBase.debugReassembleConfig = DebugReassembleConfig(widgetName: className);
-          try {
-            await reassembleApplication();
-          } finally {
-            BindingBase.debugReassembleConfig = null;
-          }
-          return <String, String>{'type': 'Success'};
-        },
-      );
-
       // Expose the ability to send Widget rebuilds as [Timeline] events.
       registerBoolServiceExtension(
         name: WidgetsServiceExtensions.profileWidgetBuilds.name,
@@ -561,7 +549,7 @@ mixin WidgetsBinding on BindingBase, ServicesBinding, SchedulerBinding, GestureB
 
   Future<void> _forceRebuild() {
     if (rootElement != null) {
-      buildOwner!.reassemble(rootElement!, null);
+      buildOwner!.reassemble(rootElement!);
       return endOfFrame;
     }
     return Future<void>.value();
@@ -737,10 +725,10 @@ mixin WidgetsBinding on BindingBase, ServicesBinding, SchedulerBinding, GestureB
   ///
   /// By default, the framework communicates when it would like to handle system
   /// back gestures using [SystemNavigator.setFrameworkHandlesBack] in
-  /// [WidgetsApp.defaultOnNavigationNotification]. This is done automatically
-  /// based on the status of the [Navigator] stack and the state of any
-  /// [PopScope] widgets present. Developers can manually set this by calling
-  /// the method directly or by using [NavigationNotification].
+  /// [WidgetsApp]. This is done automatically based on the status of the
+  /// [Navigator] stack and the state of any [PopScope] widgets present.
+  /// Developers can manually set this by calling the method directly or by
+  /// using [NavigationNotification].
   /// {@endtemplate}
   @protected
   @visibleForTesting
@@ -1112,7 +1100,7 @@ mixin WidgetsBinding on BindingBase, ServicesBinding, SchedulerBinding, GestureB
     }());
 
     if (rootElement != null) {
-      buildOwner!.reassemble(rootElement!, BindingBase.debugReassembleConfig);
+      buildOwner!.reassemble(rootElement!);
     }
     return super.performReassemble();
   }
@@ -1187,6 +1175,9 @@ mixin WidgetsBinding on BindingBase, ServicesBinding, SchedulerBinding, GestureB
 ///
 /// To artificially cause the entire widget tree to be disposed, consider
 /// calling [runApp] with a widget such as [SizedBox.shrink].
+///
+/// To listen for platform shutdown messages (and other lifecycle changes),
+/// consider the [AppLifecycleListener] API.
 ///
 /// See also:
 ///

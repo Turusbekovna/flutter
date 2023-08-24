@@ -2913,11 +2913,11 @@ class _RouteEntry extends RouteTransitionRecord {
   final _RestorationInformation? restorationInformation;
   final bool pageBased;
 
-  static Route<dynamic> notAnnounced = _NotAnnounced();
+  static final Route<dynamic> notAnnounced = _NotAnnounced();
 
   _RouteLifecycle currentState;
   Route<dynamic>? lastAnnouncedPreviousRoute = notAnnounced; // last argument to Route.didChangePrevious
-  Route<dynamic> lastAnnouncedPoppedNextRoute = notAnnounced; // last argument to Route.didPopNext
+  WeakReference<Route<dynamic>> lastAnnouncedPoppedNextRoute = WeakReference<Route<dynamic>>(notAnnounced); // last argument to Route.didPopNext
   Route<dynamic>? lastAnnouncedNextRoute = notAnnounced; // last argument to Route.didChangeNext
 
   /// Restoration ID to be used for the encapsulating route when restoration is
@@ -3006,7 +3006,7 @@ class _RouteEntry extends RouteTransitionRecord {
 
   void handleDidPopNext(Route<dynamic> poppedRoute) {
     route.didPopNext(poppedRoute);
-    lastAnnouncedPoppedNextRoute = poppedRoute;
+    lastAnnouncedPoppedNextRoute = WeakReference<Route<dynamic>>(poppedRoute);
   }
 
   /// Process the to-be-popped route.
@@ -3206,7 +3206,7 @@ class _RouteEntry extends RouteTransitionRecord {
     // already announced this change by calling didPopNext.
     return !(
       nextRoute == null &&
-        lastAnnouncedPoppedNextRoute == lastAnnouncedNextRoute
+        lastAnnouncedPoppedNextRoute.target == lastAnnouncedNextRoute
     );
   }
 
@@ -3354,7 +3354,7 @@ typedef _IndexWhereCallback = bool Function(_RouteEntry element);
 ///
 /// Acts as a ChangeNotifier and notifies after its List of _RouteEntries is
 /// mutated.
-class _History extends Iterable<_RouteEntry> with ChangeNotifier implements Iterator<_RouteEntry> {
+class _History extends Iterable<_RouteEntry> with ChangeNotifier {
   final List<_RouteEntry> _value = <_RouteEntry>[];
 
   int indexWhere(_IndexWhereCallback test, [int start = 0]) {
@@ -3398,10 +3398,6 @@ class _History extends Iterable<_RouteEntry> with ChangeNotifier implements Iter
     return entry;
   }
 
-  // Begin Iterator.
-
-  int _i = 0;
-
   _RouteEntry operator [](int index) {
     return _value[index];
   }
@@ -3410,17 +3406,6 @@ class _History extends Iterable<_RouteEntry> with ChangeNotifier implements Iter
   Iterator<_RouteEntry> get iterator {
     return _value.iterator;
   }
-
-  @override
-  _RouteEntry get current => _value[_i];
-
-  @override
-  bool moveNext() {
-    _i++;
-    return _i <= _value.length - 1;
-  }
-
-  // End Iterator.
 
   @override
   String toString() {

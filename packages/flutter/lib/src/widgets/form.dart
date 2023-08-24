@@ -480,6 +480,12 @@ class FormFieldState<T> extends State<FormField<T>> with RestorationMixin {
   /// True if this field has any validation errors.
   bool get hasError => _errorText.value != null;
 
+  /// Returns true if the user has modified the value of this field.
+  ///
+  /// This only updates to true once [didChange] has been called and resets to
+  /// false when [reset] is called.
+  bool get hasInteractedByUser => _hasInteractedByUser.value;
+
   /// True if the current value is valid.
   ///
   /// This will not set [errorText] or [hasError] and it will not update
@@ -565,6 +571,13 @@ class FormFieldState<T> extends State<FormField<T>> with RestorationMixin {
   void deactivate() {
     Form.maybeOf(context)?._unregister(this);
     super.deactivate();
+  }
+
+  @override
+  void dispose() {
+    _errorText.dispose();
+    _hasInteractedByUser.dispose();
+    super.dispose();
   }
 
   @override
